@@ -213,7 +213,7 @@ function starsHtml(name){
   const cur=Number(getScore(name))||0;
   let s='<div class="stars">';
   for(let i=1;i<=10;i++){ s+=`<span class="star${i<=cur?' on':''}" onclick="setScore('${name}',${i})">★</span>`; }
-  s+=`</div><span class="scoreNum">${cur?cur+'/10':'—'}</span>`;
+  s+=`</div><span class="scoreNum">${cur?cur+'/10':''}</span>`;
   return s;
 }
 function isFilled(name){ const d=store[name]||{}; return (d.comfort_score>0) || Q.some(q=>(d[q.key]||"").trim().length>3); }

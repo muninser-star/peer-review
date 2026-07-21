@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peer Review продактов</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --ink:#1c2024; --muted:#6b7280;
+    --line:#e3e6ea; --accent:#4f5bd5; --accent-soft:#eef0ff;
+    --field:#fbfbfc; --shadow:0 1px 2px rgba(20,24,40,.05),0 8px 24px rgba(20,24,40,.06);
+    --ok:#2f9e63; --warn-bg:#fff8e6; --warn-line:#f0d98a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15171b; --card:#1e2126; --ink:#e8eaed; --muted:#9aa0a8;
+      --line:#2c3036; --accent:#8b93f0; --accent-soft:#23263a;
+      --field:#191c21; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.3);
+      --ok:#4cc487; --warn-bg:#2a2410; --warn-line:#4a3f18;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px; margin:0 auto; padding:28px 20px 80px}
+  header h1{font-size:22px; margin:0 0 4px; letter-spacing:-.01em}
+  header p{margin:0; color:var(--muted); font-size:14px}
+
+  .hint{
+    background:var(--accent-soft); border:1px solid var(--line); border-radius:12px;
+    padding:12px 14px; margin:18px 0; font-size:13.5px;
+  }
+  .hint b{color:var(--accent)}
+  .hint ul{margin:8px 0 0; padding-left:18px}
+  .hint li{margin:3px 0}
+
+  /* evaluator picker */
+  .whoami{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow); padding:16px 18px; margin:18px 0;
+  }
+  .whoami h2{font-size:15px; margin:0 0 10px}
+  .whoami select{
+    width:100%; padding:11px 12px; font:inherit; font-size:15px; border-radius:10px;
+    border:1px solid var(--line); background:var(--field); color:var(--ink);
+  }
+
+  .gate{opacity:.4; pointer-events:none; transition:.2s}
+  .gate.open{opacity:1; pointer-events:auto}
+
+  .modebar{display:flex; gap:8px; margin:18px 0 14px}
+  .modebar button{
+    flex:1; padding:10px; border:1px solid var(--line); background:var(--card);
+    color:var(--muted); border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; transition:.15s;
+  }
+  .modebar button.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+
+  .people{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px}
+  .people button{
+    padding:8px 13px; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); border-radius:999px; font-size:13.5px; cursor:pointer;
+    display:flex; align-items:center; gap:6px; transition:.15s;
+  }
+  .people button.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--line)}
+  .people button.filled .dot{background:var(--ok)}
+  .people button.active .dot{background:rgba(255,255,255,.7)}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    box-shadow:var(--shadow); padding:22px 22px 18px; margin-bottom:16px;
+  }
+  .card h2{font-size:18px; margin:0 0 2px; letter-spacing:-.01em}
+  .card .team{color:var(--muted); font-size:13px; margin:0 0 16px}
+
+  .q{margin-bottom:18px}
+  .q label{display:block; font-weight:600; font-size:14px; margin-bottom:6px}
+  .q .sub{display:block; font-weight:400; color:var(--muted); font-size:12.5px; margin-top:1px}
+  textarea{
+    width:100%; min-height:62px; resize:vertical; padding:10px 12px;
+    border:1px solid var(--line); border-radius:10px; background:var(--field);
+    color:var(--ink); font:inherit; font-size:14px;
+  }
+  textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+
+  .submit{
+    background:var(--warn-bg); border:1px solid var(--warn-line); border-radius:14px;
+    padding:16px 18px; margin-top:20px;
+  }
+  .submit p{margin:0 0 12px; font-size:13.5px}
+  .actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .actions button{
+    padding:10px 15px; border-radius:10px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:13.5px; font-weight:600; cursor:pointer;
+  }
+  .actions button.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .saved{font-size:12.5px; color:var(--muted)}
+
+  .qblock{margin-bottom:26px}
+  .qblock > h3{font-size:15px; margin:0 0 2px}
+  .qblock > .sub{color:var(--muted); font-size:12.5px; margin:0 0 12px}
+  .qrow{margin-bottom:12px}
+  .qrow label{display:block; font-size:13px; font-weight:600; margin-bottom:4px; color:var(--muted)}
+
+  .starRow{display:flex; align-items:center; gap:2px; margin:2px 0 8px}
+  .stars{display:inline-flex; gap:1px; font-size:21px; line-height:1}
+  .star{color:var(--line); cursor:pointer; transition:transform .1s}
+  .star:hover{transform:scale(1.15)}
+  .star.on{color:#f5b301}
+  .scoreNum{margin-left:8px; font-size:13px; color:var(--muted); font-weight:600; min-width:34px}
+
+  footer{color:var(--muted); font-size:12px; text-align:center; margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Взаимная оценка продактов</h1>
+    <p>Продакты оценивают друг друга · период <span id="period" contenteditable="true" style="border-bottom:1px dashed var(--muted); cursor:text">26Q2</span></p>
+  </header>
+
+  <div class="hint">
+    <b>Как это работает:</b> выбери своё имя ниже — появятся карточки коллег. Заполни по каждому и нажми «Отправить в таблицу».
+    <ul>
+      <li>Пиши <b>поведение и пример</b>, а не ярлык: не «слабо приоритизирует», а «на планировании откладывал решение по приоритету до последнего дня → команда стартовала без ясной цели».</li>
+      <li>«Слабые стороны» — как зоны роста, без перехода на личности.</li>
+      <li>Заполняй по тем, с кем реально пересекался. Где сигнала мало — можно оставить пусто.</li>
+    </ul>
+  </div>
+
+  <div class="whoami">
+    <h2>Кто заполняет</h2>
+    <select id="evaluator" onchange="pickEvaluator(this.value)">
+      <option value="">— выбери своё имя —</option>
+    </select>
+  </div>
+
+  <div id="gate" class="gate">
+    <div class="modebar">
+      <button id="mPerson" class="active" onclick="setMode('person')">По человеку</button>
+      <button id="mQuestion" onclick="setMode('question')">По вопросу · заполнять сразу по всем</button>
+    </div>
+
+    <div id="byPerson">
+      <div class="people" id="peopleTabs"></div>
+      <div class="card" id="personCard"></div>
+    </div>
+
+    <div id="byQuestion" style="display:none"></div>
+
+    <div class="actions" style="margin-top:22px">
+      <button class="primary" id="sendBtn" onclick="sendToSheet()">📤 Отправить в таблицу</button>
+      <span class="saved" id="savedMark">заполненное сохраняется в браузере автоматически</span>
+    </div>
+  </div>
+
+  <footer>
+    Заполненное сохраняется в этом браузере, пока не нажмёшь «Отправить в таблицу».
+  </footer>
+</div>
+
+<script>
+const PEOPLE = [
+  {name:"Уриэль Кайя",     team:"LLM механики"},
+  {name:"Катя Третьякова", team:"Ui/UX LLM"},
+  {name:"Юлия Бушева",     team:"My Rambler"},
+  {name:"Владимир Учинин", team:"Главная"},
+  {name:"Каролина Лоова",  team:"Медиа + Сервисы"},
+  {name:"Женя Агаев",      team:"Агрегатор"},
+  {name:"Антон Горьков",   team:"Партнёрства"},
+  {name:"Максим Бушев",    team:"CMS"},
+];
+
+const Q = [
+  {key:"comfort", label:"Насколько комфортно работать с ним как с продактом",
+   sub:"оцени в звёздах: 1 — тяжело, 10 — легко и приятно работать"},
+  {key:"role", label:"Насколько соответствует своей роли",
+   sub:"справляется ли он с тем, что реально ждёшь от продакта в работе — или где-то не дотягивает"},
+  {key:"strong", label:"Сильные стороны", sub:"2–4 пункта, каждый — с конкретным примером"},
+  {key:"weak", label:"Слабые стороны / зоны роста", sub:"что видишь → к чему это приводит"},
+  {key:"improve", label:"Что стоит улучшить", sub:"что предложил бы; по возможности — как"},
+];
+
+// ===== ИНТЕГРАЦИЯ С GOOGLE-ТАБЛИЦЕЙ =====
+// Вставь сюда URL веб-приложения из Apps Script (шаги — в инструкции).
+// Пока пусто — работает копирование текстом и файл-копия.
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_YYc_ZvftFJj1oIiMpZemPqLamd9UAobPy4CgK-jsCCERxDZr2zkt0qjCWON2waEiSQ/exec";
+// =========================================
+
+const STORE_KEY = "peerReview_mutual_v1";
+let saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+let evaluator = saved.evaluator || "";
+let store = saved.data || {};           // store[targetName][qk] = text
+let active = 0, mode = "person";
+
+function targets(){ return PEOPLE.filter(p=>p.name!==evaluator); }
+
+function persist(){
+  localStorage.setItem(STORE_KEY, JSON.stringify({evaluator, data:store, period:document.getElementById("period").textContent}));
+  flashSaved(); paintTabs();
+}
+let flashT;
+function flashSaved(){
+  const m=document.getElementById("savedMark"); if(!m)return;
+  m.textContent="✓ сохранено"; m.style.color="var(--ok)";
+  clearTimeout(flashT); flashT=setTimeout(()=>{m.textContent="заполненное сохраняется в браузере автоматически"; m.style.color="var(--muted)";},1200);
+}
+function get(name,qk){ return (store[name]||{})[qk] || ""; }
+function set(name,qk,val){ (store[name]=store[name]||{})[qk]=val; persist(); }
+function getScore(name){ return (store[name]||{}).comfort_score || 0; }
+function setScore(name,val){ (store[name]=store[name]||{}).comfort_score=val; persist(); if(mode==="person")renderPerson(); else renderQuestion(); }
+function starsHtml(name){
+  const cur=Number(getScore(name))||0;
+  let s='<div class="stars">';
+  for(let i=1;i<=10;i++){ s+=`<span class="star${i<=cur?' on':''}" onclick="setScore('${name}',${i})">★</span>`; }
+  s+=`</div><span class="scoreNum">${cur?cur+'/10':'—'}</span>`;
+  return s;
+}
+function isFilled(name){ const d=store[name]||{}; return (d.comfort_score>0) || Q.some(q=>(d[q.key]||"").trim().length>3); }
+
+/* --- evaluator --- */
+function initEvaluatorSelect(){
+  const sel=document.getElementById("evaluator");
+  PEOPLE.forEach(p=>{ const o=document.createElement("option"); o.value=p.name; o.textContent=p.name; sel.appendChild(o); });
+  if(evaluator){ sel.value=evaluator; openGate(); }
+}
+function pickEvaluator(name){
+  evaluator=name; active=0; persist();
+  if(name){ openGate(); renderPerson(); if(mode==="question")renderQuestion(); }
+  else{ document.getElementById("gate").classList.remove("open"); }
+}
+function openGate(){ document.getElementById("gate").classList.add("open"); paintTabs(); renderPerson(); }
+
+/* --- person view --- */
+function paintTabs(){
+  const c=document.getElementById("peopleTabs"); if(!c)return; c.innerHTML="";
+  targets().forEach((p,i)=>{
+    const b=document.createElement("button");
+    b.className=(i===active?"active ":"")+(isFilled(p.name)?"filled":"");
+    b.innerHTML=`<span class="dot"></span>${p.name}`;
+    b.onclick=()=>{active=i; renderPerson(); paintTabs();};
+    c.appendChild(b);
+  });
+}
+function renderPerson(){
+  const t=targets(); if(!t.length)return;
+  if(active>=t.length)active=0;
+  const p=t[active];
+  const card=document.getElementById("personCard");
+  card.innerHTML=`<h2>${p.name}</h2><p class="team">${p.team}</p>`+
+    Q.map(q=> q.key==="comfort"
+      ? `<div class="q"><label>${q.label}<span class="sub">${q.sub}</span></label><div class="starRow">${starsHtml(p.name)}</div></div>`
+      : `<div class="q"><label>${q.label}<span class="sub">${q.sub}</span></label><textarea oninput="set('${p.name}','${q.key}',this.value)">${escapeHtml(get(p.name,q.key))}</textarea></div>`
+    ).join("");
+}
+
+/* --- question view --- */
+function renderQuestion(){
+  const c=document.getElementById("byQuestion");
+  c.innerHTML=Q.map(q=>`
+    <div class="qblock">
+      <h3>${q.label}</h3><div class="sub">${q.sub}</div>
+      ${targets().map(p=> q.key==="comfort"
+        ? `<div class="qrow"><label>${p.name} · ${p.team}</label><div class="starRow">${starsHtml(p.name)}</div></div>`
+        : `<div class="qrow"><label>${p.name} · ${p.team}</label><textarea oninput="set('${p.name}','${q.key}',this.value)">${escapeHtml(get(p.name,q.key))}</textarea></div>`
+      ).join("")}
+    </div>`).join("");
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById("mPerson").classList.toggle("active",m==="person");
+  document.getElementById("mQuestion").classList.toggle("active",m==="question");
+  document.getElementById("byPerson").style.display   = m==="person"?"":"none";
+  document.getElementById("byQuestion").style.display = m==="question"?"":"none";
+  if(m==="question") renderQuestion(); else { paintTabs(); renderPerson(); }
+}
+
+/* --- export --- */
+function allText(){
+  let t=`Взаимная оценка продактов · период ${document.getElementById("period").textContent}\nОценивающий: ${evaluator||"—"}\n`;
+  targets().forEach(p=>{
+    if(!isFilled(p.name))return;
+    t+=`\n────────────────\n${p.name} (${p.team})\n`;
+    if(getScore(p.name)) t+=`\n• Оценка комфорта: ${getScore(p.name)}/10\n`;
+    Q.forEach(q=>{ const v=get(p.name,q.key).trim(); if(v) t+=`\n• ${q.label}:\n${v}\n`; });
+  });
+  return t.trim();
+}
+function copyAll(){
+  if(!evaluator){ alert("Сначала выбери своё имя вверху."); return; }
+  navigator.clipboard.writeText(allText()).then(()=>{
+    const m=document.getElementById("savedMark"); m.textContent="✓ скопировано — вставь в сообщение Денису"; m.style.color="var(--ok)";
+    setTimeout(()=>{m.textContent="заполненное сохраняется в браузере автоматически"; m.style.color="var(--muted)";},2500);
+  });
+}
+function buildRows(){
+  return targets().filter(p=>isFilled(p.name)).map(p=>({
+    target:p.name, team:p.team,
+    comfort_score:getScore(p.name), role:get(p.name,"role"),
+    strong:get(p.name,"strong"), weak:get(p.name,"weak"), improve:get(p.name,"improve")
+  }));
+}
+async function sendToSheet(){
+  if(!evaluator){ alert("Сначала выбери своё имя вверху."); return; }
+  if(!SCRIPT_URL){ alert("Интеграция с таблицей ещё не настроена — пока пришли результат кнопкой «Скопировать текстом»."); return; }
+  const rows=buildRows();
+  if(!rows.length){ alert("Нет заполненных оценок для отправки."); return; }
+  const btn=document.getElementById("sendBtn");
+  btn.disabled=true; btn.textContent="Отправляю…";
+  const payload={period:document.getElementById("period").textContent, evaluator, rows, sentAt:new Date().toISOString()};
+  try{
+    await fetch(SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+    btn.textContent="✓ Отправлено";
+    const m=document.getElementById("savedMark"); m.textContent="✓ оценки ушли в таблицу"; m.style.color="var(--ok)";
+    setTimeout(()=>{ btn.disabled=false; btn.textContent="📤 Отправить ещё раз"; },1500);
+  }catch(err){
+    btn.disabled=false; btn.textContent="📤 Отправить в таблицу";
+    alert("Не удалось отправить. Пришли результат кнопкой «Скопировать текстом».");
+  }
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify({evaluator,data:store},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`peer_review_${(evaluator||"без_имени").replace(/\s+/g,"_")}.json`; a.click();
+}
+function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+initEvaluatorSelect();
+document.getElementById("period").addEventListener("input",persist);
+</script>
+</body>
+</html>

@@ -151,10 +151,7 @@
 
     <div id="byQuestion" style="display:none"></div>
 
-    <div class="actions" style="margin-top:22px">
-      <button class="primary" id="sendBtn" onclick="sendToSheet()">📤 Отправить в таблицу</button>
-      <span class="saved" id="savedMark">заполненное сохраняется в браузере автоматически</span>
-    </div>
+    <div class="actions" id="actionBar" style="margin-top:22px"></div>
   </div>
 
   <footer>
@@ -255,6 +252,29 @@ function renderPerson(){
       ? `<div class="q"><label>${q.label}<span class="sub">${q.sub}</span></label><div class="starRow">${starsHtml(p.name)}</div></div>`
       : `<div class="q"><label>${q.label}<span class="sub">${q.sub}</span></label><textarea oninput="set('${p.name}','${q.key}',this.value)">${escapeHtml(get(p.name,q.key))}</textarea></div>`
     ).join("");
+  renderActions();
+}
+
+/* --- нижние кнопки навигации --- */
+function renderActions(){
+  const bar=document.getElementById("actionBar"); if(!bar)return;
+  const last=targets().length-1;
+  let html="";
+  if(mode==="person"){
+    if(active>0) html+=`<button onclick="goStep(-1)">← Предыдущий</button>`;
+    if(active<last) html+=`<button class="primary" onclick="goStep(1)">Следующий →</button>`;
+    else html+=`<button class="primary" id="sendBtn" onclick="sendToSheet()">📤 Отправить в таблицу</button>`;
+  } else {
+    html+=`<button class="primary" id="sendBtn" onclick="sendToSheet()">📤 Отправить в таблицу</button>`;
+  }
+  html+=`<span class="saved" id="savedMark">заполненное сохраняется в браузере автоматически</span>`;
+  bar.innerHTML=html;
+}
+function goStep(d){
+  const last=targets().length-1;
+  active=Math.min(last,Math.max(0,active+d));
+  renderPerson(); paintTabs();
+  document.getElementById("personCard").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 /* --- question view --- */
@@ -276,7 +296,7 @@ function setMode(m){
   document.getElementById("mQuestion").classList.toggle("active",m==="question");
   document.getElementById("byPerson").style.display   = m==="person"?"":"none";
   document.getElementById("byQuestion").style.display = m==="question"?"":"none";
-  if(m==="question") renderQuestion(); else { paintTabs(); renderPerson(); }
+  if(m==="question"){ renderQuestion(); renderActions(); } else { paintTabs(); renderPerson(); }
 }
 
 /* --- export --- */
